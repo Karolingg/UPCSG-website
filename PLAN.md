@@ -12,9 +12,9 @@ Admins (us devs) handle basic account handling and super permissions. Students a
 
 Roles are a big deal here because almost everything depends on them.
 
-- **Member.** Any CS student with an account. They can view events, put in their availability for meetings, order merch, and see news and scholarships.
+- **Member.** Anyone with an account, whether they're a CS student or an outsider. They can view events, put in their availability for meetings, order merch, and see news and scholarships. Signup is open to everyone, not just school emails, because a lot of incoming students don't have their UP mail yet and would be stuck using a personal email. To confirm someone is actually a CS student, we have them submit their student ID number, and a verified student gets flagged as such. So really there are two flavors of member: a plain general member (could be an outsider) and a verified CS student. We'll figure out exactly what the student flag unlocks later, but the point is the account itself doesn't require a school email.
 - **Volunteer.** A member who got assigned to help with a specific event. Same as a member, but they show up in that event's list of people and get the event-specific stuff.
-- **Event Head.** Runs one specific event. They can manage the meetings, the pubmat schedule, and the volunteer list for that event. They can't touch anything for other events.
+- **Event Head.** Runs one specific event. They can manage the meetings, the task schedule (pubmats and errands), and the volunteer list for that event. They can't touch anything for other events.
 - **Officer / Admin.** Full access to everything. Manages merch, events, news, and assigns roles.
 
 One thing to keep in mind: a role check isn't just "what are you," it's also "which event are you for." Someone can be an event head for one event and just a normal member for everything else. So we always have to check both. More on this in the permissions part below.
@@ -31,29 +31,40 @@ How the grid works, roughly: we pick a date range and the hours we care about, t
 
 **Logging the meeting.** After a meeting happens, we record it so we have a real history and aren't scrolling through chats later. We save the title, the date, the start and end time, who actually attended (linked to their accounts), and the minutes (notes from the meeting). I'm thinking to reduce hassle for the officers, since we already have documents for minutes, we can read from it and i'll import immediately instead of them manually typing it. COnfidentiality is also very important.
 
-### 2. Pubmat scheduling
+### 2. Task scheduling (pubmats and errands)
 
-This replaces the Google Sheet plus script we used to use. It's a calendar or timetable of all the pubmats for a month, or for one specific event.
+This started as just pubmat scheduling, replacing the Google Sheet plus script we used to use. But the better idea is to make it a general **task scheduler** for an event, where a pubmat is just one kind of task. Event heads can add any task and categorize it, so a "pubmat" task sits next to an "errand" task like reserving a venue, booking equipment, or any other to-do for the event. Same calendar or timetable, just more than graphics on it.
 
-Each entry needs:
+So a task has a **category** (pubmat, errand, and whatever else we add) and the fields depend a bit on the category.
+
+Common to every task:
+
+- **Event or sub-event.** What the task is for.
+- **Deadline.** When it has to be done.
+- **Status.** Whether it's done, in progress, or not started (so the timetable doubles as a checklist).
+
+Pubmat-type tasks also need:
 
 - **Type.** Video, post, pubmat, graphic, logo, and so on. We should make this a list we can edit later instead of hardcoding it, since new types come up.
-- **Event or sub-event.** What the pubmat is for.
-- **Deadline.** When the material has to be finished.
-- **Posting date.** When it actually goes up.
+- **Posting date.** When it actually goes up (separate from the deadline, which is when it has to be finished).
 
-The old way was: you fill in a row, and a script copies it into the calendar. We want that same idea but smoother. You add an entry, and it just shows up on the timetable on its own. We'll have a calendar view, and probably a plain list view too for when you just want to scan everything quickly.
+Errand-type tasks are looser, mostly a title, the deadline, and who's on it.
+
+The old way was: you fill in a row, and a script copies it into the calendar. We want that same idea but smoother. You add a task, and it just shows up on the timetable on its own. We'll have a calendar view, and probably a plain list view too for when you just want to scan everything quickly, with a way to filter by category so you can look at just the pubmats or just the errands.
 
 ### 3. Merch ordering
 
 This is a simple ordering system. We are not handling any actual payments in the code, because we don't want to deal with being a payment processor and all the headache that comes with it.
 
-- Admins add and edit merch themselves: name, price, photo, sizes or variants, and maybe stock count. This has to be done through an admin page, not by editing code. That's important since whoever runs merch isn't always a dev.
+- Admins add and edit merch themselves: name, price, photo, sizes or variants, and stock count. This has to be done through an admin page, not by editing code. That's important since whoever runs merch isn't always a dev.
+- We are tracking inventory, not just orders. Each item (and each variant) has a stock count, so we know what's left and can show "limited" or sold-out merch on the member side. Good for both tracking and for displaying limited drops.
 - Members browse the merch and place an order.
 - For paying, we just show a **GCash QR code**. The buyer pays through GCash on their own, then sends us proof (the reference number or a screenshot), and we attach that to their order.
 - Admins see the orders coming in and mark them as paid and then fulfilled.
 
-So really, an order is just three things: the order itself, the payment proof, and a status. GCash handles the money, we only keep track of it. The status probably goes something like: ordered, then paid (once we confirm the proof), then fulfilled (once they get the merch).
+So an order is the order itself, the payment proof, and a status. GCash handles the money, we only keep track of it. The status probably goes something like: ordered, then paid (once we confirm the proof), then fulfilled (once they get the merch).
+
+**Later idea: a POS for face-to-face sales.** It'd be nice to have a point-of-sale view for merch volunteers, something like Loyverse POS, for quickly ringing up in-person orders and keeping inventory in sync with the online stock. This is **low priority** and comes after the basic ordering and inventory work, but worth keeping in mind so the inventory model can support it later. (Yet more merch thoughts are coming once the planner is sober.)
 
 ### 4. Events and news hub
 
@@ -72,10 +83,10 @@ This is probably the biggest feature and it connects a lot of the other parts.
 
 - Members can sign up for or get assigned to events as volunteers.
 - Officers assign accounts to be event heads or volunteers.
-- Event heads manage the people, meetings, and pubmats for their event.
+- Event heads manage the people, meetings, and tasks (pubmats and errands) for their event.
 - Basically it's a list and a contact point for all the volunteers and members, so getting in touch with people doesn't mean digging through old chats.
 
-The way to think about it: an **Event** is the main thing that ties everything together. Meetings, pubmats, and volunteers all hang off of an event. If we build the event part well, most of the other features are just adding, editing, and viewing stuff attached to an event.
+The way to think about it: an **Event** is the main thing that ties everything together. Meetings, tasks (pubmats and errands), and volunteers all hang off of an event. If we build the event part well, most of the other features are just adding, editing, and viewing stuff attached to an event.
 
 ## How the data connects
 
@@ -84,7 +95,7 @@ Quick map so the structure makes sense. An event sits in the middle and most thi
 ```
 User has a role: Member / Volunteer / Event Head / Admin
 Event has many Meetings
-Event has many Pubmat entries
+Event has many Tasks (a Task has a category: pubmat, errand, etc.)
 Event has many Volunteers (Users)
 Event has one Event Head (User)
 Merch has many Orders, and each Order belongs to a User (plus the GCash proof)
@@ -101,16 +112,16 @@ We've already started the frontend, so we keep that:
 
 We need a backend and a database, since almost everything is dynamic and admins edit it themselves.
 
-I'm leaning toward **Supabase** for the backend. It's built on Postgres and comes with login, file storage, and security rules already included. Here's why it fits us:
+We're going with **Supabase** for the backend (decided). It's built on Postgres and comes with login, file storage, and security rules already included. Here's why it fits us:
 
 - It has login built in, so we don't have to build accounts from scratch.
 - It has file storage, which we need for event posters, merch photos, and the GCash payment screenshots people upload.
 - Our data is very connected (events linking to meetings, pubmats, and volunteers), and Postgres is good at that connected kind of data.
 - It has security rules at the database level (row level security), which means we can enforce the "event heads can only touch their own event" rule in the database itself, not just in the frontend. That's safer because someone can't get around it by messing with the site.
 
-The other option is Firebase, but its data is less suited to all the linking we need, so Supabase looks like the better fit. We should still confirm this before fully committing.
+The other option was Firebase, but its data is less suited to all the linking we need, so Supabase won out.
 
-For login we'd use Supabase's built in auth, probably with email, and we still need to decide if we only allow school emails. The roles themselves we store in our own tables.
+For login we use Supabase's built in auth with email, and signup is open to everyone (not just school emails) for the reasons in the Member role above. The roles themselves we store in our own tables, including the verified-CS-student flag from the student ID.
 
 ## Permissions, explained
 
@@ -132,20 +143,27 @@ I'm trying to order this so each phase is actually usable on its own, instead of
 
 **Phase 3, meetings.** The availability grid and the part that finds the best times, then the meeting logs with attendance, times, and minutes.
 
-**Phase 4, pubmat timetable.** The pubmat entries plus the calendar and list views, sorted by event or by month.
+**Phase 4, task timetable.** The task entries (pubmats and errands) plus the calendar and list views, sorted by event or by month and filterable by category.
 
-**Phase 5, merch.** Admin merch management, member ordering, the GCash QR and proof upload, and order status tracking.
+**Phase 5, merch.** Admin merch management with inventory, member ordering, the GCash QR and proof upload, and order status tracking. The face-to-face POS comes later, after this is solid.
 
 The order can shift later, but Phases 0 to 2 should go first because login, roles, and events are the backbone everything else sits on.
 
-## Stuff we still need to decide
+## Decided
 
-- Supabase or Firebase. Need to lock this in before we build the backend.
-- Do we only allow school emails for signup, or is it open to anyone?
+- **Backend: Supabase.** Locked in.
+- **Signup is open to everyone**, not just school emails. CS students get verified via their student ID number. Two types of member: general member and verified CS student.
+- **Merch tracks inventory**, not just orders, so we can show limited and sold-out items.
+- **Meeting minutes are a plain text box for the first version.** Functional now, make it more user-efficient later.
+- **Task scheduling, not just pubmats.** Event heads categorize each task (pubmat, errand like reserving a venue, etc.).
+
+## Still need to decide
+
 - How strict should event head scoping be? I want it at the database level, but that's more work, so we should agree on it.
-- For merch, do we track stock and inventory, or just the orders?
-- For meeting minutes, is a plain text box fine for the first version, or do we want a nicer editor?
-- Do we want notifications (email or in the site) for deadlines and meetings, or is that for later?
+- Exactly what the verified-CS-student flag unlocks vs a plain general member.
+- For notifications (email or in the site) for deadlines and meetings: yes we want them, and the plan is to add them **right after the main features are done** — not at the start, not skipped.
+- The face-to-face merch POS (Loyverse-style): wanted, but low priority, after basic merch.
+- More merch thoughts in general — the planner has a lot of these and will add them when sober.
 
 ## Not doing this for now
 
