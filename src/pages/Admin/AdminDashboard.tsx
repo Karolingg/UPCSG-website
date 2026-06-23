@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import DashboardLayout from '../components/DashboardLayout'
+import { useAuth } from '@/context/auth-context'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 
 export default function AdminDashboard() {
   const { profile } = useAuth()

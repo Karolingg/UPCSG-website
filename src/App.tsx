@@ -1,12 +1,13 @@
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './context/AuthContext'
-import ProtectedRoute from './components/ProtectedRoute'
-import RoleRoute from './components/RoleRoute'
-import LoginPage from './pages/LoginPage'
-import SignupPage from './pages/SignupPage'
-import DashboardPage from './pages/DashboardPage'
-import AdminDashboard from './pages/AdminDashboard'
-import ProfilePage from './pages/ProfilePage'
+import { AuthProvider } from '@/context/AuthContext'
+import { useAuth } from '@/context/auth-context'
+import ProtectedRoute from '@/components/routing/ProtectedRoute'
+import RoleRoute from '@/components/routing/RoleRoute'
+import LoginPage from '@/pages/Login'
+import SignupPage from '@/pages/Signup'
+import DashboardPage from '@/pages/Dashboard'
+import AdminDashboard from '@/pages/Admin'
+import ProfilePage from '@/pages/Profile'
 
 function RootRedirect() {
   const { user, loading } = useAuth()

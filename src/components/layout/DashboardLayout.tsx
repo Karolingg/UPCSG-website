@@ -1,11 +1,14 @@
+import type { ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import Logo from './Logo'
+import { useAuth } from '@/context/auth-context'
+import Logo from '@/components/ui/Logo'
 
-// Sidebar items. `to` set = navigable; otherwise rendered as an upcoming
-// (dimmed, non-interactive) item so the shell matches the mockup without
-// pretending features built in later phases exist yet.
-const NAV_ITEMS = [
+interface NavItem {
+  label: string
+  to?: string
+}
+
+const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Announcements' },
   { label: 'Events' },
@@ -15,7 +18,7 @@ const NAV_ITEMS = [
   { label: 'Settings', to: '/profile' },
 ]
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
 
@@ -26,7 +29,6 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="min-h-screen flex flex-col bg-ink text-paper">
-      {/* Top bar */}
       <header className="nebula-bg flex items-center justify-between px-6 h-20 border-b border-white/10">
         <Logo height={64} />
         <div className="flex items-center gap-6 text-sm font-semibold tracking-wide">
@@ -45,7 +47,6 @@ export default function DashboardLayout({ children }) {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
         <aside className="w-60 shrink-0 bg-ink-soft border-r border-white/5 py-6">
           <nav className="flex flex-col gap-1">
             {NAV_ITEMS.map(item =>
@@ -77,7 +78,6 @@ export default function DashboardLayout({ children }) {
           </nav>
         </aside>
 
-        {/* Main content */}
         <main className="flex-1 p-8">{children}</main>
       </div>
     </div>

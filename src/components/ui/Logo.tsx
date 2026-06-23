@@ -1,4 +1,9 @@
-export default function Logo({ className = '', height = 44 }) {
+interface LogoProps {
+  className?: string
+  height?: number
+}
+
+export default function Logo({ className = '', height = 44 }: LogoProps) {
   return (
     <img
       src="/upcsg-logo.png"

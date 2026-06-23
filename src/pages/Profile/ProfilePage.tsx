@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../context/AuthContext'
-import DashboardLayout from '../components/DashboardLayout'
+import type { FormEvent } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/auth-context'
+import DashboardLayout from '@/components/layout/DashboardLayout'
 
 export default function ProfilePage() {
   const { user, profile, roles } = useAuth()
@@ -9,8 +10,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
-  async function handleSave(e) {
+  async function handleSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!user) return
     setSaving(true)
     setMessage('')
     const { error } = await supabase

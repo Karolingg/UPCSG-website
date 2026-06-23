@@ -1,8 +1,14 @@
+import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '@/context/auth-context'
+import type { Role } from '@/types/db'
 
-// roles: array of role strings — passes if the user has ANY of them
-export default function RoleRoute({ children, roles }) {
+interface RoleRouteProps {
+  children: ReactNode
+  roles: Role[]
+}
+
+export default function RoleRoute({ children, roles }: RoleRouteProps) {
   const { hasRole, loading } = useAuth()
 
   if (loading) return <div className="flex items-center justify-center min-h-screen bg-ink text-paper/50">Loading…</div>

@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import Logo from '../components/Logo'
+import { useAuth } from '@/context/auth-context'
+import Logo from '@/components/ui/Logo'
 
 export default function LoginPage() {
   const { signIn, user } = useAuth()
@@ -16,7 +17,7 @@ export default function LoginPage() {
     return null
   }
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -24,7 +25,7 @@ export default function LoginPage() {
       await signIn(email, password)
       navigate('/dashboard', { replace: true })
     } catch (err) {
-      setError(err.message)
+      setError(err instanceof Error ? err.message : 'Sign in failed.')
     } finally {
       setLoading(false)
     }
