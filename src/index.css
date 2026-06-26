@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* UPCSG theme — Navy + Gold palette (from the brand color palettes page).
+/* UPCSG theme — Navy + Gold palette.
    ink/surface/gold/paper are the four palette colors; ink-soft is an in-family
-   elevation tone derived between ink and surface for panels and the sidebar. */
+   elevation tone derived between ink and surface for panels and the sidebar.
+   font-display (Space Grotesk) is for headings; font-sans (Inter) is for all body text. */
 @theme {
   --color-ink: #0b132b;       /* page background        */
   --color-ink-soft: #102347;  /* sidebar / topbar / inputs (elevation) */
@@ -11,7 +12,8 @@
   --color-gold-soft: #ffd77f;
   --color-paper: #e0e1dd;     /* primary text            */
 
-  --font-sans: system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -32,12 +34,17 @@ body {
   min-height: 100svh;
 }
 
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
 /* Nebula background — evokes the UPCSG logo's cosmic backdrop:
    deep blue on the left, a warm gold glow upper-right, a scatter of stars,
    over the navy base. Used for the topbar and the auth page backgrounds so the
    logo's own baked-in background blends in. */
 .nebula-bg {
-  background-color: #0b132b;
+  background-color: var(--color-ink);
   background-image:
     radial-gradient(1px 1px at 15% 35%, rgba(255, 255, 255, 0.8), transparent),
     radial-gradient(1px 1px at 28% 68%, rgba(255, 255, 255, 0.5), transparent),

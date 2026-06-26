@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import Logo from '@/components/ui/Logo'
+import Button from '@/components/ui/Button'
 
 export default function LoginPage() {
   const { signIn, user } = useAuth()
@@ -62,13 +63,9 @@ export default function LoginPage() {
               />
             </div>
             {error && <p className="text-red-400 text-sm">{error}</p>}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gold text-ink py-2.5 rounded-lg font-bold hover:bg-gold-soft transition-colors disabled:opacity-50"
-            >
+            <Button type="submit" disabled={loading} className="w-full py-2.5">
               {loading ? 'Signing in…' : 'Sign in'}
-            </button>
+            </Button>
           </form>
           <p className="mt-6 text-sm text-center text-paper/50">
             Don't have an account?{' '}

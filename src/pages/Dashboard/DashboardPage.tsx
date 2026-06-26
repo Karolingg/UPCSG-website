@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
 import DashboardLayout from '@/components/layout/DashboardLayout'
+import Card from '@/components/ui/Card'
+import Pill from '@/components/ui/Pill'
 
 export default function DashboardPage() {
   const { profile, roles, isAdmin, isOfficer } = useAuth()
@@ -13,40 +14,27 @@ export default function DashboardPage() {
       </p>
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="bg-surface rounded-xl p-6 border border-white/5">
+        <Card>
           <p className="text-paper/60 text-sm">Your roles</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {roles.length === 0 ? (
               <span className="text-paper/40 text-sm">No roles assigned</span>
             ) : (
-              roles.map(r => (
-                <span
-                  key={r.id}
-                  className="bg-gold/15 text-gold text-xs font-semibold px-2.5 py-1 rounded-full"
-                >
-                  {r.role}
-                </span>
-              ))
+              roles.map(r => <Pill key={r.id}>{r.role}</Pill>)
             )}
           </div>
-        </div>
+        </Card>
 
-        <Link
-          to="/profile"
-          className="bg-surface rounded-xl p-6 border border-white/5 hover:border-gold/40 transition-colors"
-        >
+        <Card to="/profile" hover>
           <p className="text-paper font-semibold">Profile &amp; settings</p>
           <p className="text-paper/60 text-sm mt-1">Edit your display name and details.</p>
-        </Link>
+        </Card>
 
         {(isAdmin() || isOfficer()) && (
-          <Link
-            to="/admin"
-            className="bg-surface rounded-xl p-6 border border-white/5 hover:border-gold/40 transition-colors"
-          >
+          <Card to="/admin" hover>
             <p className="text-paper font-semibold">Admin panel</p>
             <p className="text-paper/60 text-sm mt-1">Manage events, news, and roles.</p>
-          </Link>
+          </Card>
         )}
       </div>
 
