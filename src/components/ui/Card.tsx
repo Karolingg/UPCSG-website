@@ -9,8 +9,8 @@ interface CardProps {
 }
 
 export default function Card({ children, className = '', hover = false, to }: CardProps) {
-  const base = `w-full bg-surface rounded-xl p-6 border border-white/5 ${
-    hover ? 'hover:border-gold/40 transition-colors' : ''
+  const base = `w-full bg-surface rounded-xl p-6 border border-white/10 ${
+    hover ? 'hover:border-gold/50 transition-colors cursor-pointer' : ''
   } ${className}`
 
   if (to) {

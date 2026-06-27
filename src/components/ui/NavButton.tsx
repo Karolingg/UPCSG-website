@@ -14,7 +14,9 @@ export default function NavButton({ children, to }: NavButtonProps) {
         end
         className={({ isActive }) =>
           `w-full px-4 py-3 rounded-md font-bold tracking-wide transition-colors block ${
-            isActive ? "bg-gold text-ink" : "text-paper hover:bg-white/5"
+            isActive
+              ? "bg-gold/15 text-gold"
+              : "text-paper/70 hover:text-paper hover:bg-white/6"
           }`
         }
       >
