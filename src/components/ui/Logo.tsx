@@ -3,12 +3,12 @@ interface LogoProps {
   height?: number
 }
 
-export default function Logo({ className = '', height = 44 }: LogoProps) {
+export default function Logo({ className = '', height }: LogoProps) {
   return (
     <img
       src="/upcsg-logo.png"
       alt="UP Computer Science Guild"
-      style={{ height }}
+      style={height !== undefined ? { height } : undefined}
       className={`w-auto object-contain rounded ${className}`}
     />
   )
