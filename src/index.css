@@ -3,7 +3,8 @@
 /* UPCSG theme — Navy + Gold palette.
    ink/surface/gold/paper are the four palette colors; ink-soft is an in-family
    elevation tone derived between ink and surface for panels and the sidebar.
-   font-display (Space Grotesk) is for headings; font-sans (Inter) is for all body text. */
+   font-display (Hanken Grotesk, a Neue Montreal stand-in) is for headings;
+   font-sans (Helvetica) is for all body text. */
 @theme {
   --color-ink: #0b132b; /* page background        */
   --color-ink-soft: #102347; /* sidebar / topbar / inputs (elevation) */
@@ -12,8 +13,8 @@
   --color-gold-soft: #ffd77f;
   --color-paper: #e0e1dd; /* primary text            */
 
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Hanken Grotesk", system-ui, sans-serif;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 * {

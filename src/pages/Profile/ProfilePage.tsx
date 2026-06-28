@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth-context'
-import DashboardLayout from '@/components/layout/DashboardLayout'
+import PageLayout from '@/components/layout/PageLayout'
 import Card from '@/components/ui/Card'
 import Pill from '@/components/ui/Pill'
 import Button from '@/components/ui/Button'
@@ -27,8 +27,8 @@ export default function ProfilePage() {
   }
 
   return (
-    <DashboardLayout>
-      <h1 className="text-3xl font-bold text-paper">Profile &amp; Settings</h1>
+    <PageLayout>
+      <h1 className="text-3xl font-bold text-paper">Profile</h1>
 
       <div className="mt-8 max-w-lg">
         <Card>
@@ -74,6 +74,6 @@ export default function ProfilePage() {
           </form>
         </Card>
       </div>
-    </DashboardLayout>
+    </PageLayout>
   )
 }

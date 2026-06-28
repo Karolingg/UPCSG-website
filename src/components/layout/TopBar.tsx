@@ -19,7 +19,7 @@ export default function TopBar({
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuToggle}
-          className="lg:hidden p-2 -ml-1 rounded-md text-paper/60 hover:text-paper hover:bg-white/10 transition-colors"
+          className="p-2 -ml-1 rounded-md text-paper/60 hover:text-paper hover:bg-white/10 transition-colors"
           aria-label="Toggle navigation"
         >
           <svg
@@ -38,11 +38,6 @@ export default function TopBar({
       </div>
 
       <div className="flex items-center gap-4 lg:gap-6 text-sm font-semibold tracking-wide">
-        <div className="hidden lg:flex items-center gap-6">
-          <span className="text-paper/40 cursor-default">NEWS</span>
-          <span className="text-paper/40 cursor-default">BADGES</span>
-        </div>
-
         <Dropdown
           align="right"
           trigger={

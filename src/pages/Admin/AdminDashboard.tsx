@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/context/auth-context'
-import DashboardLayout from '@/components/layout/DashboardLayout'
+import PageLayout from '@/components/layout/PageLayout'
 import Card from '@/components/ui/Card'
 
 export default function AdminDashboard() {
   const { profile } = useAuth()
 
   return (
-    <DashboardLayout>
+    <PageLayout>
       <h1 className="text-3xl font-bold text-paper">Admin Dashboard</h1>
       <p className="text-paper/60 mt-1">
         Welcome, {profile?.display_name ?? 'admin'}.
@@ -24,6 +24,6 @@ export default function AdminDashboard() {
           </Link>
         </Card>
       </div>
-    </DashboardLayout>
+    </PageLayout>
   )
 }

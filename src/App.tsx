@@ -8,6 +8,12 @@ import SignupPage from '@/pages/Signup'
 import DashboardPage from '@/pages/Dashboard'
 import AdminDashboard from '@/pages/Admin'
 import ProfilePage from '@/pages/Profile'
+import SettingsPage from '@/pages/Settings'
+import AnnouncementsPage from '@/pages/Announcements'
+import EventsPage from '@/pages/Events'
+import ScholarshipsPage from '@/pages/Scholarships'
+import InternshipsPage from '@/pages/Internships'
+import OfficersPage from '@/pages/Officers'
 
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -36,6 +42,30 @@ const router = createBrowserRouter([
   {
     path: '/profile',
     element: <ProtectedRoute><ProfilePage /></ProtectedRoute>,
+  },
+  {
+    path: '/settings',
+    element: <ProtectedRoute><SettingsPage /></ProtectedRoute>,
+  },
+  {
+    path: '/announcements',
+    element: <ProtectedRoute><AnnouncementsPage /></ProtectedRoute>,
+  },
+  {
+    path: '/events',
+    element: <ProtectedRoute><EventsPage /></ProtectedRoute>,
+  },
+  {
+    path: '/scholarships',
+    element: <ProtectedRoute><ScholarshipsPage /></ProtectedRoute>,
+  },
+  {
+    path: '/internships',
+    element: <ProtectedRoute><InternshipsPage /></ProtectedRoute>,
+  },
+  {
+    path: '/officers',
+    element: <ProtectedRoute><OfficersPage /></ProtectedRoute>,
   },
 ])
 
