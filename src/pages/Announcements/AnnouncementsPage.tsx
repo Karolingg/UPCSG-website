@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Plus, ImageOff, ArrowRight, Link2, FileText, RefreshCw } from 'lucide-react'
+import { Search, Plus, ImageOff, ArrowRight, Link2, FileText, RefreshCw, Settings2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth-context'
 import PageLayout from '@/components/layout/PageLayout'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import type { NewsPost, RedirectType } from '@/types/db'
 
 const PAGE_SIZE = 9
@@ -89,6 +90,30 @@ export default function AnnouncementsPage() {
   const list = featured ? posts.slice(1) : posts
   const canManage = isAdmin() || isOfficer()
 
+  // Cover + gallery images for the featured post's carousel
+  const [featuredImages, setFeaturedImages] = useState<string[]>([])
+  useEffect(() => {
+    if (!featured) {
+      setFeaturedImages([])
+      return
+    }
+    let cancelled = false
+    async function loadImages(post: NewsPost) {
+      const { data } = await supabase
+        .from('news_images')
+        .select('image_url')
+        .eq('news_id', post.id)
+        .order('sort_order', { ascending: true })
+      if (cancelled) return
+      const galleryUrls = (data ?? []).map(d => (d as { image_url: string }).image_url)
+      setFeaturedImages([post.image_url, ...galleryUrls].filter((u): u is string => Boolean(u)))
+    }
+    loadImages(featured)
+    return () => {
+      cancelled = true
+    }
+  }, [featured?.id, featured?.image_url]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <PageLayout>
       <div className="flex flex-wrap items-start justify-between gap-4 pr-16">
@@ -99,11 +124,18 @@ export default function AnnouncementsPage() {
           </p>
         </div>
         {canManage && (
-          <Link to="/admin/announcements/new">
-            <Button className="flex items-center gap-2 shrink-0">
-              <Plus size={16} /> Add New
-            </Button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Link to="/admin/announcements">
+              <Button variant="secondary" className="flex items-center gap-2">
+                <Settings2 size={16} /> Manage
+              </Button>
+            </Link>
+            <Link to="/admin/announcements/new">
+              <Button className="flex items-center gap-2">
+                <Plus size={16} /> Add New
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 
@@ -127,7 +159,7 @@ export default function AnnouncementsPage() {
         <ErrorState message={error} onRetry={() => setRetryTick(t => t + 1)} />
       ) : (
         <>
-          {featured && <FeaturedAnnouncement post={featured} />}
+          {featured && <FeaturedAnnouncement post={featured} images={featuredImages} />}
 
           <div className="mt-14">
             <h2 className="text-xl font-bold text-paper tracking-tight">
@@ -164,7 +196,7 @@ export default function AnnouncementsPage() {
   )
 }
 
-function FeaturedAnnouncement({ post }: { post: NewsPost }) {
+function FeaturedAnnouncement({ post, images }: { post: NewsPost; images: string[] }) {
   return (
     <section className="mt-8">
       <div className="flex items-center gap-2 mb-4">
@@ -173,29 +205,22 @@ function FeaturedAnnouncement({ post }: { post: NewsPost }) {
           Latest Announcement
         </p>
       </div>
-      <Link
-        to={`/announcements/${post.id}`}
-        className="group block max-w-4xl mx-auto bg-surface rounded-2xl border border-white/10 overflow-hidden hover:border-gold/40 hover:shadow-xl hover:shadow-black/25 transition-all duration-200"
-      >
+      <div className="group max-w-4xl mx-auto bg-surface rounded-2xl border border-white/10 overflow-hidden hover:border-gold/40 hover:shadow-xl hover:shadow-black/25 transition-all duration-200">
         <div className="relative">
-          {post.image_url ? (
-            <img
-              src={post.image_url}
-              alt=""
-              className="w-full max-h-[440px] object-contain bg-ink-soft"
-            />
+          {images.length > 0 ? (
+            <ImageCarousel images={images} heightClass="h-72 sm:h-80" />
           ) : (
             <div className="w-full h-56 bg-ink-soft flex items-center justify-center text-paper/20">
               <ImageOff size={40} />
             </div>
           )}
           {post.redirect_type !== 'none' && (
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-4 left-4 z-10">
               <TypeBadge type={post.redirect_type} />
             </div>
           )}
         </div>
-        <div className="p-8 sm:p-10 text-center">
+        <Link to={`/announcements/${post.id}`} className="block p-8 sm:p-10 text-center">
           <p className="font-display text-[11px] font-bold tracking-[0.2em] text-gold uppercase">
             Announcement
           </p>
@@ -211,8 +236,8 @@ function FeaturedAnnouncement({ post }: { post: NewsPost }) {
           <span className="mt-5 inline-flex items-center gap-1.5 text-gold font-semibold text-sm group-hover:gap-2.5 transition-all">
             Read announcement <ArrowRight size={15} />
           </span>
-        </div>
-      </Link>
+        </Link>
+      </div>
     </section>
   )
 }

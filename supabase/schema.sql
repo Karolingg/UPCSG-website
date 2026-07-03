@@ -140,3 +140,55 @@ create policy "officers_delete_announcement_images"
       where user_id = auth.uid() and role in ('officer', 'admin')
     )
   );
+
+-- news_images: extra gallery images for an announcement (0..n per post).
+-- The single cover lives on news.image_url; these are additional photos.
+create table if not exists public.news_images (
+  id         uuid primary key default gen_random_uuid(),
+  news_id    uuid not null references public.news(id) on delete cascade,
+  image_url  text not null,
+  sort_order int not null default 0,
+  created_at timestamptz default now() not null
+);
+
+create index if not exists news_images_news_id_idx on public.news_images (news_id);
+
+alter table public.news_images enable row level security;
+
+-- Members can read gallery images of published posts; officers/admins read all
+create policy "read_news_images"
+  on public.news_images for select
+  using (
+    exists (
+      select 1 from public.news n
+      where n.id = news_id
+        and (
+          n.status = 'published'
+          or exists (
+            select 1 from public.user_roles
+            where user_id = auth.uid() and role in ('officer', 'admin')
+          )
+        )
+    )
+  );
+
+create policy "officers_insert_news_images"
+  on public.news_images for insert to authenticated
+  with check (exists (
+    select 1 from public.user_roles
+    where user_id = auth.uid() and role in ('officer', 'admin')
+  ));
+
+create policy "officers_update_news_images"
+  on public.news_images for update to authenticated
+  using (exists (
+    select 1 from public.user_roles
+    where user_id = auth.uid() and role in ('officer', 'admin')
+  ));
+
+create policy "officers_delete_news_images"
+  on public.news_images for delete to authenticated
+  using (exists (
+    select 1 from public.user_roles
+    where user_id = auth.uid() and role in ('officer', 'admin')
+  ));

@@ -6,13 +6,15 @@ import { useAuth } from '@/context/auth-context'
 import PageLayout from '@/components/layout/PageLayout'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
+import ImageCarousel from '@/components/ui/ImageCarousel'
 import { formatDate } from './AnnouncementsPage'
-import type { NewsPost } from '@/types/db'
+import type { NewsImage, NewsPost } from '@/types/db'
 
 export default function AnnouncementDetail() {
   const { id } = useParams<{ id: string }>()
   const { isAdmin, isOfficer } = useAuth()
   const [post, setPost] = useState<NewsPost | null>(null)
+  const [gallery, setGallery] = useState<NewsImage[]>([])
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
@@ -33,11 +35,28 @@ export default function AnnouncementDetail() {
         .select('*')
         .eq('id', id)
         .single()
-      setPost(error ? null : (data as NewsPost))
+      if (error || !data) {
+        setPost(null)
+        setLoading(false)
+        return
+      }
+      setPost(data as NewsPost)
+      const { data: imgs } = await supabase
+        .from('news_images')
+        .select('*')
+        .eq('news_id', id)
+        .order('sort_order', { ascending: true })
+      setGallery((imgs ?? []) as NewsImage[])
       setLoading(false)
     }
     fetchPost()
   }, [id])
+
+  const heroImages = post
+    ? [post.image_url, ...gallery.map(g => g.image_url)].filter(
+        (u): u is string => Boolean(u),
+      )
+    : []
 
   return (
     <PageLayout>
@@ -93,12 +112,8 @@ export default function AnnouncementDetail() {
       ) : (
         <article className="mt-8 max-w-3xl mx-auto">
           <div className="bg-surface rounded-2xl border border-white/10 overflow-hidden">
-            {post.image_url ? (
-              <img
-                src={post.image_url}
-                alt=""
-                className="w-full max-h-[460px] object-contain bg-ink-soft"
-              />
+            {heroImages.length > 0 ? (
+              <ImageCarousel images={heroImages} heightClass="h-[420px]" />
             ) : (
               <div className="h-2 w-full bg-gold/40" />
             )}
@@ -195,6 +210,7 @@ export default function AnnouncementDetail() {
               )}
             </div>
           )}
+
         </article>
       )}
     </PageLayout>

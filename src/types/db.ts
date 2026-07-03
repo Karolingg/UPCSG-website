@@ -35,3 +35,11 @@ export interface NewsPost {
   posted_by: string
   created_at: string
 }
+
+export interface NewsImage {
+  id: string
+  news_id: string
+  image_url: string
+  sort_order: number
+  created_at: string
+}

@@ -1,12 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, ExternalLink, ImagePlus, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  ChevronRight,
+  ExternalLink,
+  ImagePlus,
+  Images,
+  ChevronUp,
+  ChevronDown,
+  X,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth-context'
 import PageLayout from '@/components/layout/PageLayout'
 import Button from '@/components/ui/Button'
 import { formatDate } from '@/pages/Announcements/AnnouncementsPage'
-import type { NewsPost, NewsStatus, RedirectType } from '@/types/db'
+import type { NewsImage, NewsPost, NewsStatus, RedirectType } from '@/types/db'
+
+/** A gallery slot: either an image already in the DB, or a newly picked file. */
+interface GalleryItem {
+  key: string
+  existingId?: string
+  url: string // public URL (existing) or object URL (new)
+  file?: File
+}
 
 const inputClass =
   'w-full bg-ink border border-white/10 rounded-xl px-4 py-3 text-paper text-sm placeholder-paper/25 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-colors'
@@ -112,6 +129,24 @@ export default function AnnouncementForm() {
   const imagePreview = useObjectUrl(imageFile) ?? imageUrl
   const articleImagePreview = useObjectUrl(articleImageFile) ?? articleImageUrl
 
+  // Gallery (multiple images) — ordered list of existing + newly picked
+  const [gallery, setGallery] = useState<GalleryItem[]>([])
+  const [originalGallery, setOriginalGallery] = useState<NewsImage[]>([])
+
+  // Revoke any object URLs we created for gallery previews on unmount
+  const galleryRef = useRef<GalleryItem[]>([])
+  useEffect(() => {
+    galleryRef.current = gallery
+  }, [gallery])
+  useEffect(
+    () => () => {
+      galleryRef.current.forEach(i => {
+        if (i.file) URL.revokeObjectURL(i.url)
+      })
+    },
+    [],
+  )
+
   // Warn before losing unsaved edits on refresh/close
   const dirtyRef = useRef(false)
   useEffect(() => {
@@ -148,11 +183,57 @@ export default function AnnouncementForm() {
         })
         setImageUrl(p.image_url)
         setArticleImageUrl(p.article_image_url)
+
+        const { data: imgs } = await supabase
+          .from('news_images')
+          .select('*')
+          .eq('news_id', id)
+          .order('sort_order', { ascending: true })
+        const rows = (imgs ?? []) as NewsImage[]
+        setOriginalGallery(rows)
+        setGallery(rows.map(r => ({ key: r.id, existingId: r.id, url: r.image_url })))
       }
       setLoading(false)
     }
     fetchPost()
   }, [id, isEdit])
+
+  function addGalleryFiles(files: FileList) {
+    const additions: GalleryItem[] = []
+    for (const file of Array.from(files)) {
+      const problem = validateImageFile(file)
+      if (problem) {
+        setError(problem)
+        continue
+      }
+      additions.push({ key: crypto.randomUUID(), url: URL.createObjectURL(file), file })
+    }
+    if (additions.length > 0) {
+      dirtyRef.current = true
+      setError('')
+      setGallery(g => [...g, ...additions])
+    }
+  }
+
+  function removeGalleryItem(key: string) {
+    dirtyRef.current = true
+    setGallery(g => {
+      const item = g.find(i => i.key === key)
+      if (item?.file) URL.revokeObjectURL(item.url)
+      return g.filter(i => i.key !== key)
+    })
+  }
+
+  function moveGalleryItem(index: number, dir: -1 | 1) {
+    setGallery(g => {
+      const j = index + dir
+      if (j < 0 || j >= g.length) return g
+      const next = [...g]
+      ;[next[index], next[j]] = [next[j], next[index]]
+      return next
+    })
+    dirtyRef.current = true
+  }
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     dirtyRef.current = true
@@ -208,6 +289,42 @@ export default function AnnouncementForm() {
     window.scrollTo(0, 0)
   }
 
+  async function syncGallery(newsId: string) {
+    // Remove existing images the user deleted (rows + storage files)
+    const keptIds = new Set(gallery.filter(i => i.existingId).map(i => i.existingId!))
+    const removed = originalGallery.filter(im => !keptIds.has(im.id))
+    if (removed.length > 0) {
+      await supabase
+        .from('news_images')
+        .delete()
+        .in(
+          'id',
+          removed.map(r => r.id),
+        )
+      const paths = removed
+        .map(r => storagePathFromUrl(r.image_url))
+        .filter((p): p is string => p !== null)
+      if (paths.length > 0) await supabase.storage.from('announcement-images').remove(paths)
+    }
+
+    // Upload new files (insert) and persist the current order for all items
+    for (let index = 0; index < gallery.length; index++) {
+      const item = gallery[index]
+      if (item.file) {
+        const url = await uploadImage(item.file)
+        const { error } = await supabase
+          .from('news_images')
+          .insert({ news_id: newsId, image_url: url, sort_order: index })
+        if (error) throw new Error(error.message)
+      } else if (item.existingId) {
+        await supabase
+          .from('news_images')
+          .update({ sort_order: index })
+          .eq('id', item.existingId)
+      }
+    }
+  }
+
   async function handlePublish() {
     if (!user) return
     setSaving(true)
@@ -243,11 +360,22 @@ export default function AnnouncementForm() {
         article_image_url: isArticle ? finalArticleImageUrl : null,
       }
 
-      const result = isEdit
-        ? await supabase.from('news').update(payload).eq('id', id)
-        : await supabase.from('news').insert({ ...payload, posted_by: user.id })
+      let newsId = id
+      if (isEdit) {
+        const { error } = await supabase.from('news').update(payload).eq('id', id)
+        if (error) throw new Error(error.message)
+      } else {
+        const { data, error } = await supabase
+          .from('news')
+          .insert({ ...payload, posted_by: user.id })
+          .select('id')
+          .single()
+        if (error) throw new Error(error.message)
+        newsId = (data as { id: string }).id
+      }
 
-      if (result.error) throw new Error(result.error.message)
+      await syncGallery(newsId!)
+
       dirtyRef.current = false
       navigate('/admin/announcements')
     } catch (err) {
@@ -340,6 +468,13 @@ export default function AnnouncementForm() {
                   setImageFile(null)
                   setImageUrl(null)
                 }}
+              />
+
+              <GalleryPicker
+                items={gallery}
+                onAdd={addGalleryFiles}
+                onRemove={removeGalleryItem}
+                onMove={moveGalleryItem}
               />
             </div>
 
@@ -477,6 +612,7 @@ export default function AnnouncementForm() {
               form={form}
               imagePreview={imagePreview}
               articleImagePreview={articleImagePreview}
+              galleryPreviews={gallery.map(g => g.url)}
             />
 
             {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
@@ -591,14 +727,96 @@ function ImagePicker({
   )
 }
 
+function GalleryPicker({
+  items,
+  onAdd,
+  onRemove,
+  onMove,
+}: {
+  items: GalleryItem[]
+  onAdd: (files: FileList) => void
+  onRemove: (key: string) => void
+  onMove: (index: number, dir: -1 | 1) => void
+}) {
+  return (
+    <div>
+      <label className={labelClass}>Gallery Images (optional)</label>
+      <p className="text-sm text-paper/50 -mt-1 mb-3">
+        Add extra photos shown as a gallery on the announcement page. Reorder with the arrows.
+      </p>
+
+      {items.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+          {items.map((item, index) => (
+            <div
+              key={item.key}
+              className="relative group rounded-xl overflow-hidden border border-white/10 bg-ink"
+            >
+              <img src={item.url} alt="" className="h-28 w-full object-cover" />
+              <div className="absolute top-1.5 left-1.5 bg-ink/80 text-paper/70 text-[10px] font-bold rounded px-1.5 py-0.5">
+                {index + 1}
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(item.key)}
+                className="absolute top-1.5 right-1.5 bg-ink/80 border border-white/20 rounded-full p-1 text-paper/70 hover:text-red-400 transition-colors cursor-pointer"
+                aria-label="Remove image"
+              >
+                <X size={12} />
+              </button>
+              <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => onMove(index, -1)}
+                  disabled={index === 0}
+                  className="bg-ink/80 border border-white/20 rounded p-1 text-paper/70 hover:text-gold transition-colors disabled:opacity-30 cursor-pointer"
+                  aria-label="Move left"
+                >
+                  <ChevronUp size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onMove(index, 1)}
+                  disabled={index === items.length - 1}
+                  className="bg-ink/80 border border-white/20 rounded p-1 text-paper/70 hover:text-gold transition-colors disabled:opacity-30 cursor-pointer"
+                  aria-label="Move right"
+                >
+                  <ChevronDown size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <label className="inline-flex items-center gap-2.5 bg-ink border border-white/15 text-paper font-bold text-sm px-5 py-2.5 rounded-xl cursor-pointer hover:border-gold/50 hover:text-gold transition-colors">
+        <Images size={16} />
+        {items.length > 0 ? 'Add More Images' : 'Add Gallery Images'}
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={e => {
+            if (e.target.files && e.target.files.length > 0) onAdd(e.target.files)
+            e.target.value = ''
+          }}
+        />
+      </label>
+    </div>
+  )
+}
+
 function Preview({
   form,
   imagePreview,
   articleImagePreview,
+  galleryPreviews,
 }: {
   form: FormState
   imagePreview: string | null
   articleImagePreview: string | null
+  galleryPreviews: string[]
 }) {
   return (
     <article className="bg-surface rounded-2xl border border-white/10 p-6 sm:p-10">
@@ -614,6 +832,19 @@ function Preview({
       <p className="mt-2 text-sm text-paper/40">{formatDate(new Date().toISOString())}</p>
       {form.summary && (
         <p className="mt-5 text-paper/80 leading-relaxed whitespace-pre-wrap">{form.summary}</p>
+      )}
+
+      {galleryPreviews.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {galleryPreviews.map((src, i) => (
+            <img
+              key={i}
+              src={src}
+              alt=""
+              className="h-28 w-full object-cover rounded-lg border border-white/10"
+            />
+          ))}
+        </div>
       )}
 
       {form.redirect_type === 'link' && form.redirect_url && (

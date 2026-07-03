@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import PageLayout from '@/components/layout/PageLayout'
@@ -94,7 +95,13 @@ export default function AdminAnnouncementsPage() {
     if (!window.confirm(`Delete "${post.title}"? This cannot be undone.`)) return
     setBusyId(post.id)
 
-    const paths = [post.image_url, post.article_image_url]
+    const { data: galleryImgs } = await supabase
+      .from('news_images')
+      .select('image_url')
+      .eq('news_id', post.id)
+    const galleryUrls = (galleryImgs ?? []).map(g => (g as { image_url: string }).image_url)
+
+    const paths = [post.image_url, post.article_image_url, ...galleryUrls]
       .map(storagePathFromUrl)
       .filter((p): p is string => p !== null)
     if (paths.length > 0) {
@@ -112,7 +119,14 @@ export default function AdminAnnouncementsPage() {
 
   return (
     <PageLayout>
-      <div className="flex flex-wrap items-start justify-between gap-4 pr-16">
+      <Link
+        to="/announcements"
+        className="inline-flex items-center gap-2 text-sm font-medium text-paper/60 hover:text-gold transition-colors"
+      >
+        <ArrowLeft size={16} /> Back to Announcements
+      </Link>
+
+      <div className="mt-6 flex flex-wrap items-start justify-between gap-4 pr-16">
         <div>
           <h1 className="text-4xl font-extrabold text-paper tracking-tight">
             Manage Announcements
