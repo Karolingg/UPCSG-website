@@ -60,3 +60,83 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- news: announcements posted by officers/admins
+-- redirect_type controls the detail view: 'none' = summary only,
+-- 'link' = external URL, 'article' = embedded article fields below
+create table public.news (
+  id                   uuid primary key default gen_random_uuid(),
+  title                text not null,
+  summary              text,
+  image_url            text,
+  status               text not null default 'published'
+                         check (status in ('draft', 'published')),
+  redirect_type        text not null default 'none'
+                         check (redirect_type in ('none', 'link', 'article')),
+  redirect_url         text,
+  article_title        text,
+  article_content      text,
+  article_author_name  text,
+  article_author_email text,
+  article_author_title text,
+  article_image_url    text,
+  posted_by            uuid not null references public.profiles(id) on delete cascade,
+  created_at           timestamptz default now() not null
+);
+
+alter table public.news enable row level security;
+
+create policy "members_read_published"
+  on public.news for select
+  using (auth.uid() is not null and status = 'published');
+
+create policy "officers_read_all"
+  on public.news for select
+  using (exists (
+    select 1 from public.user_roles
+    where user_id = auth.uid() and role in ('officer', 'admin')
+  ));
+
+create policy "officers_insert"
+  on public.news for insert
+  with check (exists (
+    select 1 from public.user_roles
+    where user_id = auth.uid() and role in ('officer', 'admin')
+  ));
+
+create policy "officers_update"
+  on public.news for update
+  using (exists (
+    select 1 from public.user_roles
+    where user_id = auth.uid() and role in ('officer', 'admin')
+  ));
+
+create policy "officers_delete"
+  on public.news for delete
+  using (exists (
+    select 1 from public.user_roles
+    where user_id = auth.uid() and role in ('officer', 'admin')
+  ));
+
+-- Storage: requires a public bucket named 'announcement-images'
+-- (dashboard → Storage → New bucket). Reads are public; writes need policies:
+
+create policy "officers_upload_announcement_images"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'announcement-images'
+    and exists (
+      select 1 from public.user_roles
+      where user_id = auth.uid() and role in ('officer', 'admin')
+    )
+  );
+
+create policy "officers_delete_announcement_images"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'announcement-images'
+    and exists (
+      select 1 from public.user_roles
+      where user_id = auth.uid() and role in ('officer', 'admin')
+    )
+  );

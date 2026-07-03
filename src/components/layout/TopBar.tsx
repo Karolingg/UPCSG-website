@@ -45,7 +45,7 @@ export default function TopBar({
               className="rounded-full ring-2 ring-transparent hover:ring-gold/40 transition-all duration-150"
               aria-label="User menu"
             >
-              <Avatar name={displayName} size="md" />
+              <Avatar name={displayName} />
             </button>
           }
         >
