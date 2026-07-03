@@ -113,7 +113,7 @@ export default function AnnouncementDetail() {
         <article className="mt-8 max-w-3xl mx-auto">
           <div className="bg-surface rounded-2xl border border-white/10 overflow-hidden">
             {heroImages.length > 0 ? (
-              <ImageCarousel images={heroImages} heightClass="h-[420px]" />
+              <ImageCarousel images={heroImages} />
             ) : (
               <div className="h-2 w-full bg-gold/40" />
             )}

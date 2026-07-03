@@ -3,10 +3,8 @@ import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
 
 interface ImageCarouselProps {
   images: string[]
-  /** Tailwind height class for the frame, e.g. "h-72" or "h-[420px]". */
-  heightClass?: string
-  /** "object-contain" (whole image, letterboxed) or "object-cover". */
-  objectClass?: string
+  /** Height for the empty-state placeholder only (images size to their aspect). */
+  placeholderHeightClass?: string
   className?: string
 }
 
@@ -15,8 +13,7 @@ const arrowClass =
 
 export default function ImageCarousel({
   images,
-  heightClass = 'h-72',
-  objectClass = 'object-contain',
+  placeholderHeightClass = 'h-64',
   className = '',
 }: ImageCarouselProps) {
   const [index, setIndex] = useState(0)
@@ -30,7 +27,7 @@ export default function ImageCarousel({
   if (count === 0) {
     return (
       <div
-        className={`${heightClass} w-full bg-ink-soft flex items-center justify-center text-paper/20 ${className}`}
+        className={`${placeholderHeightClass} w-full bg-ink-soft flex items-center justify-center text-paper/20 ${className}`}
       >
         <ImageOff size={40} />
       </div>
@@ -49,8 +46,9 @@ export default function ImageCarousel({
   }
 
   return (
-    <div className={`relative ${heightClass} w-full bg-ink-soft ${className}`}>
-      <img src={images[safe]} alt="" className={`h-full w-full ${objectClass}`} />
+    <div className={`relative w-full bg-ink-soft ${className}`}>
+      {/* Image sizes to its own aspect ratio — whole image, never cropped */}
+      <img src={images[safe]} alt="" className="w-full h-auto block max-h-[80vh] mx-auto" />
 
       {count > 1 && (
         <>

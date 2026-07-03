@@ -208,7 +208,7 @@ function FeaturedAnnouncement({ post, images }: { post: NewsPost; images: string
       <div className="group max-w-4xl mx-auto bg-surface rounded-2xl border border-white/10 overflow-hidden hover:border-gold/40 hover:shadow-xl hover:shadow-black/25 transition-all duration-200">
         <div className="relative">
           {images.length > 0 ? (
-            <ImageCarousel images={images} heightClass="h-72 sm:h-80" />
+            <ImageCarousel images={images} />
           ) : (
             <div className="w-full h-56 bg-ink-soft flex items-center justify-center text-paper/20">
               <ImageOff size={40} />
