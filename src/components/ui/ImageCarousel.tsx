@@ -1,9 +1,8 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
 
 interface ImageCarouselProps {
   images: string[]
-  /** Height for the empty-state placeholder only (images size to their aspect). */
   placeholderHeightClass?: string
   className?: string
 }
@@ -18,11 +17,6 @@ export default function ImageCarousel({
 }: ImageCarouselProps) {
   const [index, setIndex] = useState(0)
   const count = images.length
-
-  // Clamp if the image list shrinks
-  useEffect(() => {
-    if (index > count - 1) setIndex(Math.max(0, count - 1))
-  }, [count, index])
 
   if (count === 0) {
     return (

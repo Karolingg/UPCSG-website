@@ -7,7 +7,7 @@ import PageLayout from '@/components/layout/PageLayout'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import ImageCarousel from '@/components/ui/ImageCarousel'
-import { formatDate } from './AnnouncementsPage'
+import { formatDate } from './utils'
 import type { NewsImage, NewsPost } from '@/types/db'
 
 export default function AnnouncementDetail() {

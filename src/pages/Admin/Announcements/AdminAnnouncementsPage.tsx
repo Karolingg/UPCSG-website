@@ -18,7 +18,7 @@ import PageLayout from '@/components/layout/PageLayout'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
-import { formatDate } from '@/pages/Announcements/AnnouncementsPage'
+import { formatDate, titleSummaryFilter, resolveThumbnails } from '@/pages/Announcements/utils'
 import type { NewsPost, NewsStatus } from '@/types/db'
 
 type StatusFilter = 'all' | NewsStatus
@@ -44,6 +44,7 @@ export default function AdminAnnouncementsPage() {
   const [error, setError] = useState('')
   const [retryTick, setRetryTick] = useState(0)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [thumbs, setThumbs] = useState<Record<string, string>>({})
 
   useEffect(() => {
     let cancelled = false
@@ -56,17 +57,22 @@ export default function AdminAnnouncementsPage() {
         .order('created_at', { ascending: false })
       if (filter !== 'all') q = q.eq('status', filter)
       const s = query.trim()
-      if (s) q = q.or(`title.ilike.%${s}%,summary.ilike.%${s}%`)
+      if (s) q = q.or(titleSummaryFilter(s))
 
       const { data, error } = await q
       if (cancelled) return
       if (error) {
         setError(error.message)
         setPosts([])
-      } else {
-        setPosts(data as NewsPost[])
+        setThumbs({})
+        setLoading(false)
+        return
       }
+      const rows = data as NewsPost[]
+      setPosts(rows)
       setLoading(false)
+      const map = await resolveThumbnails(rows)
+      if (!cancelled) setThumbs(map)
     }
     const timer = setTimeout(fetchPosts, query ? 300 : 0)
     return () => {
@@ -105,7 +111,19 @@ export default function AdminAnnouncementsPage() {
       .map(storagePathFromUrl)
       .filter((p): p is string => p !== null)
     if (paths.length > 0) {
-      await supabase.storage.from('announcement-images').remove(paths)
+      const { data: removed, error: storageError } = await supabase.storage
+        .from('announcement-images')
+        .remove(paths)
+      if (storageError) {
+        window.alert(`Could not delete image files from storage: ${storageError.message}`)
+      } else if ((removed?.length ?? 0) < paths.length) {
+        // remove() reports success even when a missing DELETE policy silently
+        // removes nothing — an empty/short result means the files were left behind.
+        window.alert(
+          `Warning: ${paths.length - (removed?.length ?? 0)} image file(s) were not ` +
+            `deleted from storage (check the "announcement-images" DELETE policy).`,
+        )
+      }
     }
 
     const { error } = await supabase.from('news').delete().eq('id', post.id)
@@ -217,11 +235,11 @@ export default function AdminAnnouncementsPage() {
                 key={post.id}
                 className="group bg-surface rounded-2xl border border-white/10 p-4 flex items-center gap-4 hover:border-white/20 transition-colors"
               >
-                {post.image_url ? (
+                {thumbs[post.id] ? (
                   <img
-                    src={post.image_url}
+                    src={thumbs[post.id]}
                     alt=""
-                    className="h-16 w-24 shrink-0 object-contain bg-ink-soft rounded-lg"
+                    className="h-16 w-24 shrink-0 object-cover bg-ink-soft rounded-lg"
                   />
                 ) : (
                   <div className="h-16 w-24 shrink-0 bg-ink-soft rounded-lg flex items-center justify-center text-paper/20">

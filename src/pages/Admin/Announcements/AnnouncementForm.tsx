@@ -1,20 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowLeft,
+  ChevronLeft,
   ChevronRight,
   ExternalLink,
   ImagePlus,
   Images,
-  ChevronUp,
-  ChevronDown,
   X,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/auth-context'
 import PageLayout from '@/components/layout/PageLayout'
 import Button from '@/components/ui/Button'
-import { formatDate } from '@/pages/Announcements/AnnouncementsPage'
+import { formatDate } from '@/pages/Announcements/utils'
 import type { NewsImage, NewsPost, NewsStatus, RedirectType } from '@/types/db'
 
 /** A gallery slot: either an image already in the DB, or a newly picked file. */
@@ -84,16 +83,12 @@ function isValidUrl(value: string): boolean {
 
 /** Object URL for a picked file, revoked automatically on change/unmount. */
 function useObjectUrl(file: File | null): string | null {
-  const [url, setUrl] = useState<string | null>(null)
+  const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
   useEffect(() => {
-    if (!file) {
-      setUrl(null)
-      return
+    return () => {
+      if (url) URL.revokeObjectURL(url)
     }
-    const u = URL.createObjectURL(file)
-    setUrl(u)
-    return () => URL.revokeObjectURL(u)
-  }, [file])
+  }, [url])
   return url
 }
 
@@ -125,6 +120,13 @@ export default function AnnouncementForm() {
   const [articleImageUrl, setArticleImageUrl] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [articleImageFile, setArticleImageFile] = useState<File | null>(null)
+
+  // The cover/article URLs as first loaded from the DB (edit mode). Compared
+  // against the saved row so files the post no longer references — whether
+  // replaced, cleared, or dropped by switching away from the article type —
+  // get removed from storage instead of leaking.
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null)
+  const [originalArticleImageUrl, setOriginalArticleImageUrl] = useState<string | null>(null)
 
   const imagePreview = useObjectUrl(imageFile) ?? imageUrl
   const articleImagePreview = useObjectUrl(articleImageFile) ?? articleImageUrl
@@ -183,6 +185,8 @@ export default function AnnouncementForm() {
         })
         setImageUrl(p.image_url)
         setArticleImageUrl(p.article_image_url)
+        setOriginalImageUrl(p.image_url)
+        setOriginalArticleImageUrl(p.article_image_url)
 
         const { data: imgs } = await supabase
           .from('news_images')
@@ -333,14 +337,13 @@ export default function AnnouncementForm() {
       let finalImageUrl = imageUrl
       let finalArticleImageUrl = articleImageUrl
 
+      // Upload new files first. Old files are removed only after the DB write
+      // succeeds (see below), so a failed save never leaves the row pointing
+      // at an already-deleted object.
       if (imageFile) {
-        const oldPath = storagePathFromUrl(imageUrl)
-        if (oldPath) await supabase.storage.from('announcement-images').remove([oldPath])
         finalImageUrl = await uploadImage(imageFile)
       }
       if (articleImageFile && form.redirect_type === 'article') {
-        const oldPath = storagePathFromUrl(articleImageUrl)
-        if (oldPath) await supabase.storage.from('announcement-images').remove([oldPath])
         finalArticleImageUrl = await uploadImage(articleImageFile)
       }
 
@@ -360,6 +363,11 @@ export default function AnnouncementForm() {
         article_image_url: isArticle ? finalArticleImageUrl : null,
       }
 
+      // NOTE: publishing is a multi-step, non-transactional write (news upsert,
+      // then syncGallery does row deletes / uploads / inserts, then stale-file
+      // cleanup). A failure partway can leave orphaned news_images rows or
+      // storage objects. Acceptable for an admin tool at this scale; revisit
+      // with an RPC/transaction if it grows.
       let newsId = id
       if (isEdit) {
         const { error } = await supabase.from('news').update(payload).eq('id', id)
@@ -375,6 +383,22 @@ export default function AnnouncementForm() {
       }
 
       await syncGallery(newsId!)
+
+      // Save succeeded — remove any originally-referenced cover/article files
+      // the saved row no longer points at (replaced, cleared, or dropped by
+      // switching away from the article type).
+      const savedArticleImageUrl = payload.article_image_url
+      const stalePaths = [
+        originalImageUrl && originalImageUrl !== finalImageUrl ? originalImageUrl : null,
+        originalArticleImageUrl && originalArticleImageUrl !== savedArticleImageUrl
+          ? originalArticleImageUrl
+          : null,
+      ]
+        .map(storagePathFromUrl)
+        .filter((p): p is string => p !== null)
+      if (stalePaths.length > 0) {
+        await supabase.storage.from('announcement-images').remove(stalePaths)
+      }
 
       dirtyRef.current = false
       navigate('/admin/announcements')
@@ -772,7 +796,7 @@ function GalleryPicker({
                   className="bg-ink/80 border border-white/20 rounded p-1 text-paper/70 hover:text-gold transition-colors disabled:opacity-30 cursor-pointer"
                   aria-label="Move left"
                 >
-                  <ChevronUp size={12} />
+                  <ChevronLeft size={12} />
                 </button>
                 <button
                   type="button"
@@ -781,7 +805,7 @@ function GalleryPicker({
                   className="bg-ink/80 border border-white/20 rounded p-1 text-paper/70 hover:text-gold transition-colors disabled:opacity-30 cursor-pointer"
                   aria-label="Move right"
                 >
-                  <ChevronDown size={12} />
+                  <ChevronRight size={12} />
                 </button>
               </div>
             </div>

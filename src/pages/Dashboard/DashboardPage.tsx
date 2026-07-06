@@ -6,12 +6,13 @@ import { useAuth } from "@/context/auth-context";
 import PageLayout from "@/components/layout/PageLayout";
 import Card from "@/components/ui/Card";
 import Pill from "@/components/ui/Pill";
-import { formatDate } from "@/pages/Announcements/AnnouncementsPage";
+import { formatDate, resolveThumbnails } from "@/pages/Announcements/utils";
 import type { NewsPost } from "@/types/db";
 
 export default function DashboardPage() {
   const { roles, isAdmin, isOfficer } = useAuth();
   const [latest, setLatest] = useState<NewsPost | null>(null);
+  const [thumb, setThumb] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchLatest() {
@@ -22,7 +23,12 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (data) setLatest(data as NewsPost);
+      if (data) {
+        const post = data as NewsPost;
+        setLatest(post);
+        const map = await resolveThumbnails([post]);
+        setThumb(map[post.id] ?? null);
+      }
     }
     fetchLatest();
   }, []);
@@ -69,11 +75,11 @@ export default function DashboardPage() {
             to={`/announcements/${latest.id}`}
             className="mt-4 flex flex-col sm:flex-row bg-surface rounded-xl border border-white/10 overflow-hidden hover:border-gold/50 transition-colors"
           >
-            {latest.image_url ? (
+            {thumb ? (
               <img
-                src={latest.image_url}
+                src={thumb}
                 alt=""
-                className="sm:w-64 h-44 shrink-0 object-contain bg-ink-soft"
+                className="sm:w-64 h-44 shrink-0 object-cover bg-ink-soft"
               />
             ) : (
               <div className="sm:w-64 h-44 sm:h-auto shrink-0 bg-ink-soft flex items-center justify-center text-paper/20">

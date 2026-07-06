@@ -119,7 +119,13 @@ create policy "officers_delete"
   ));
 
 -- Storage: requires a public bucket named 'announcement-images'
--- (dashboard → Storage → New bucket). Reads are public; writes need policies:
+-- (dashboard → Storage → New bucket). Public URLs bypass RLS for display, but
+-- the storage API still needs policies for insert/delete — and a SELECT policy
+-- so remove() can locate objects (without it, deletes silently no-op).
+
+create policy "read_announcement_images"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'announcement-images');
 
 create policy "officers_upload_announcement_images"
   on storage.objects for insert to authenticated

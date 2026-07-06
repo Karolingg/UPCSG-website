@@ -8,19 +8,12 @@ import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
 import ImageCarousel from '@/components/ui/ImageCarousel'
+import { formatDate, titleSummaryFilter, resolveThumbnails } from './utils'
 import type { NewsPost, RedirectType } from '@/types/db'
 
 const PAGE_SIZE = 9
 
-export function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-export function TypeBadge({ type }: { type: RedirectType }) {
+function TypeBadge({ type }: { type: RedirectType }) {
   if (type === 'link')
     return (
       <Badge tone="info">
@@ -61,7 +54,7 @@ export default function AnnouncementsPage() {
         .order('created_at', { ascending: false })
         .range(0, page * PAGE_SIZE) // one extra row to detect "load more"
       const s = query.trim()
-      if (s) q = q.or(`title.ilike.%${s}%,summary.ilike.%${s}%`)
+      if (s) q = q.or(titleSummaryFilter(s))
 
       const { data, error } = await q
       if (cancelled) return
@@ -90,15 +83,27 @@ export default function AnnouncementsPage() {
   const list = featured ? posts.slice(1) : posts
   const canManage = isAdmin() || isOfficer()
 
+  // Thumbnail per post: cover, or first gallery image when there's no cover
+  const [thumbs, setThumbs] = useState<Record<string, string>>({})
+  useEffect(() => {
+    let cancelled = false
+    resolveThumbnails(posts).then(m => {
+      if (!cancelled) setThumbs(m)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [posts])
+
   // Cover + gallery images for the featured post's carousel
   const [featuredImages, setFeaturedImages] = useState<string[]>([])
   useEffect(() => {
-    if (!featured) {
-      setFeaturedImages([])
-      return
-    }
     let cancelled = false
-    async function loadImages(post: NewsPost) {
+    async function loadImages(post: NewsPost | null) {
+      if (!post) {
+        if (!cancelled) setFeaturedImages([])
+        return
+      }
       const { data } = await supabase
         .from('news_images')
         .select('image_url')
@@ -173,7 +178,7 @@ export default function AnnouncementsPage() {
             <>
               <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map(post => (
-                  <AnnouncementCard key={post.id} post={post} />
+                  <AnnouncementCard key={post.id} post={post} thumb={thumbs[post.id]} />
                 ))}
               </div>
               {hasMore && (
@@ -242,15 +247,15 @@ function FeaturedAnnouncement({ post, images }: { post: NewsPost; images: string
   )
 }
 
-function AnnouncementCard({ post }: { post: NewsPost }) {
+function AnnouncementCard({ post, thumb }: { post: NewsPost; thumb?: string }) {
   return (
     <Link
       to={`/announcements/${post.id}`}
       className="group bg-surface rounded-2xl border border-white/10 overflow-hidden hover:border-gold/40 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/25 transition-all duration-200 flex flex-col"
     >
       <div className="relative">
-        {post.image_url ? (
-          <img src={post.image_url} alt="" className="h-40 w-full object-contain bg-ink-soft" />
+        {thumb ? (
+          <img src={thumb} alt="" className="h-40 w-full object-cover bg-ink-soft" />
         ) : (
           <div className="h-40 w-full bg-ink-soft flex items-center justify-center text-paper/20">
             <ImageOff size={28} />
