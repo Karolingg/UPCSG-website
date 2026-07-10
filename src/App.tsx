@@ -9,7 +9,8 @@ import DashboardPage from '@/pages/Dashboard'
 import AdminDashboard from '@/pages/Admin'
 import ProfilePage from '@/pages/Profile'
 import SettingsPage from '@/pages/Settings'
-import AnnouncementsPage from '@/pages/Announcements'
+import AnnouncementsPage, { AnnouncementDetail } from '@/pages/Announcements'
+import { AdminAnnouncementsPage, AnnouncementForm } from '@/pages/Admin/Announcements'
 import EventsPage from '@/pages/Events'
 import ScholarshipsPage from '@/pages/Scholarships'
 import InternshipsPage from '@/pages/Internships'
@@ -50,6 +51,40 @@ const router = createBrowserRouter([
   {
     path: '/announcements',
     element: <ProtectedRoute><AnnouncementsPage /></ProtectedRoute>,
+  },
+  {
+    path: '/announcements/:id',
+    element: <ProtectedRoute><AnnouncementDetail /></ProtectedRoute>,
+  },
+  {
+    path: '/admin/announcements',
+    element: (
+      <ProtectedRoute>
+        <RoleRoute roles={['admin', 'officer']}>
+          <AdminAnnouncementsPage />
+        </RoleRoute>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/announcements/new',
+    element: (
+      <ProtectedRoute>
+        <RoleRoute roles={['admin', 'officer']}>
+          <AnnouncementForm />
+        </RoleRoute>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/admin/announcements/:id/edit',
+    element: (
+      <ProtectedRoute>
+        <RoleRoute roles={['admin', 'officer']}>
+          <AnnouncementForm />
+        </RoleRoute>
+      </ProtectedRoute>
+    ),
   },
   {
     path: '/events',

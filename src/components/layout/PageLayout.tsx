@@ -41,7 +41,7 @@ export default function PageLayout({ children }: { children: ReactNode }) {
       />
 
       <div className="relative flex-1 bg-ink-soft rounded-4xl overflow-hidden min-w-0 my-4 mr-4">
-        <main className="h-full overflow-y-auto pt-16 px-5 pb-5 lg:pt-8 lg:px-8 lg:pb-8">
+        <main className="h-full overflow-y-auto overflow-x-hidden pt-16 px-5 pb-5 lg:pt-8 lg:px-8 lg:pb-8">
           {children}
         </main>
       </div>
